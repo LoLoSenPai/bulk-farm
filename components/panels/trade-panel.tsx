@@ -7,6 +7,14 @@ import { useMemo, useState } from "react";
 import { Card, Pill } from "@/components/ui/card";
 import { useMarketsStore } from "@/stores/markets.store";
 
+type ToggleProps<T extends string> = {
+    value: T;
+    onChange: (v: T) => void;
+    a: T;
+    b: T;
+    className?: string;
+};
+
 export function TradePanel() {
     const symbol = useMarketsStore((s) => s.selectedSymbol);
     const ticker = useMarketsStore((s) => (symbol ? s.tickerBySymbol[symbol] : undefined));
@@ -30,8 +38,8 @@ export function TradePanel() {
             className="min-h-0"
         >
             <div className="grid grid-cols-2 gap-2">
-                <Toggle value={side} onChange={setSide} a="long" b="short" />
-                <Toggle value={type} onChange={setType} a="market" b="limit" />
+                <Toggle<"long" | "short"> value={side} onChange={(v) => setSide(v)} a="long" b="short" />
+                <Toggle<"market" | "limit"> value={type} onChange={(v) => setType(v)} a="market" b="limit" />
             </div>
 
             <div className="mt-2 space-y-2">
@@ -82,20 +90,30 @@ function Field(props: { label: string; children: React.ReactNode }) {
     );
 }
 
-function Toggle<T extends string>(props: { value: T; onChange: (v: T) => void; a: T; b: T }) {
+function Toggle<T extends string>({
+    value,
+    onChange,
+    a,
+    b,
+    className,
+}: ToggleProps<T>) {
     return (
-        <div className="grid grid-cols-2 rounded-2xl border border-white/10 bg-white/[0.02] p-1 text-xs">
+        <div className={`grid grid-cols-2 gap-2 ${className ?? ""}`}>
             <button
-                onClick={() => props.onChange(props.a)}
-                className={props.value === props.a ? "rounded-xl bg-white text-black px-2 py-2 font-semibold" : "rounded-xl px-2 py-2 text-white/70 hover:bg-white/5"}
+                type="button"
+                onClick={() => onChange(a)}
+                className={`rounded-2xl border px-3 py-2 text-sm ${value === a ? "bg-white text-black border-white" : "border-white/10 bg-white/[0.02] text-white/80"
+                    }`}
             >
-                {props.a.toUpperCase()}
+                {a.toUpperCase()}
             </button>
             <button
-                onClick={() => props.onChange(props.b)}
-                className={props.value === props.b ? "rounded-xl bg-white text-black px-2 py-2 font-semibold" : "rounded-xl px-2 py-2 text-white/70 hover:bg-white/5"}
+                type="button"
+                onClick={() => onChange(b)}
+                className={`rounded-2xl border px-3 py-2 text-sm ${value === b ? "bg-white text-black border-white" : "border-white/10 bg-white/[0.02] text-white/80"
+                    }`}
             >
-                {props.b.toUpperCase()}
+                {b.toUpperCase()}
             </button>
         </div>
     );
