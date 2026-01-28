@@ -91,6 +91,21 @@ export class BulkWs {
     this.ws.send(payload);
   }
 
+  subscribeFrontendContext() {
+    // WS docs Bulk: method/subscribe + subscription array
+    this.send({
+      method: "subscribe",
+      subscription: [{ type: "frontendContext" }],
+    });
+  }
+
+  unsubscribeFrontendContext() {
+    this.send({
+      method: "unsubscribe",
+      subscription: [{ type: "frontendContext" }],
+    });
+  }
+
   subscribeTicker(symbol: string) {
     // NOTE: exact channel format may differ; adjust once we inspect WS docs
     this.send({ op: "subscribe", channel: "ticker", symbol });
@@ -127,41 +142,78 @@ function parseWs(data: any): BulkWsMessage {
   try {
     const obj = typeof data === "string" ? JSON.parse(data) : data;
 
-    // Try to normalize common patterns:
-    if (obj?.type && typeof obj.type === "string") {
-      if (obj.type === "ticker")
-        return {
-          type: "ticker",
-          symbol: obj.symbol ?? obj.s,
-          data: obj.data ?? obj,
-        };
-      if (obj.type === "l2book")
-        return {
-          type: "l2book",
-          symbol: obj.symbol ?? obj.s,
-          data: obj.data ?? obj,
-        };
-      if (obj.type === "error")
-        return {
-          type: "error",
-          message: obj.message ?? "WS error",
-          code: obj.code,
-        };
-      return { type: "raw", data: obj };
+    // 1) Direct "type"
+    if (obj?.type === "frontendContext") {
+      return { type: "frontendContext", data: obj.data ?? obj };
     }
 
-    if (obj?.channel === "ticker")
+    if (obj?.type === "ticker") {
       return {
         type: "ticker",
         symbol: obj.symbol ?? obj.s,
         data: obj.data ?? obj,
       };
-    if (obj?.channel === "l2book")
+    }
+
+    if (obj?.type === "l2book") {
       return {
         type: "l2book",
         symbol: obj.symbol ?? obj.s,
         data: obj.data ?? obj,
       };
+    }
+
+    if (obj?.type === "error") {
+      return {
+        type: "error",
+        message: obj.message ?? "WS error",
+        code: obj.code,
+      };
+    }
+
+    // 2) Direct "channel"
+    if (obj?.channel === "frontendContext") {
+      return { type: "frontendContext", data: obj.data ?? obj };
+    }
+    if (obj?.channel === "ticker") {
+      return {
+        type: "ticker",
+        symbol: obj.symbol ?? obj.s,
+        data: obj.data ?? obj,
+      };
+    }
+    if (obj?.channel === "l2book") {
+      return {
+        type: "l2book",
+        symbol: obj.symbol ?? obj.s,
+        data: obj.data ?? obj,
+      };
+    }
+
+    // 3) Some APIs wrap pushes like: { method:"subscription", data:{...} }
+    if (obj?.method === "subscription") {
+      const inner = obj.data ?? obj;
+      if (
+        inner?.type === "frontendContext" ||
+        inner?.channel === "frontendContext"
+      ) {
+        return { type: "frontendContext", data: inner.data ?? inner };
+      }
+      if (inner?.type === "ticker" || inner?.channel === "ticker") {
+        return {
+          type: "ticker",
+          symbol: inner.symbol ?? inner.s,
+          data: inner.data ?? inner,
+        };
+      }
+      if (inner?.type === "l2book" || inner?.channel === "l2book") {
+        return {
+          type: "l2book",
+          symbol: inner.symbol ?? inner.s,
+          data: inner.data ?? inner,
+        };
+      }
+    }
 
     return { type: "raw", data: obj };
   } catch {

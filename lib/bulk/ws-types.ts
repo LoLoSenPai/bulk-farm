@@ -3,6 +3,7 @@
 // =========================
 export type BulkWsMessage =
   | { type: "subscribed"; channel: string; symbol?: string }
+  | { type: "frontendContext"; data: any }
   | { type: "ticker"; symbol: string; data: any }
   | { type: "l2book"; symbol: string; data: any }
   | { type: "error"; message: string; code?: string }

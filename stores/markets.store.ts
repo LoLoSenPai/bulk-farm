@@ -13,7 +13,6 @@ import type {
 type MarketsState = {
   markets: Market[];
   selectedSymbol?: SymbolId;
-
   tickerBySymbol: Record<SymbolId, Ticker | undefined>;
   l2BySymbol: Record<SymbolId, L2Book | undefined>;
   klinesBySymbol: Record<SymbolId, Kline[] | undefined>;
@@ -22,6 +21,7 @@ type MarketsState = {
   selectSymbol: (s: SymbolId) => void;
 
   upsertTicker: (t: Ticker) => void;
+  upsertTickers: (tickers: Ticker[]) => void;
   setL2: (b: L2Book) => void;
   setKlines: (symbol: SymbolId, k: Kline[]) => void;
 };
@@ -41,6 +41,13 @@ export const useMarketsStore = create<MarketsState>((set) => ({
     set((st) => ({
       tickerBySymbol: { ...st.tickerBySymbol, [t.symbol]: t },
     })),
+
+  upsertTickers: (tickers) =>
+    set((st) => {
+      const next = { ...st.tickerBySymbol };
+      for (const t of tickers) next[t.symbol] = t;
+      return { tickerBySymbol: next };
+    }),
 
   setL2: (b) =>
     set((st) => ({

@@ -6,10 +6,33 @@ import { BulkWs } from "@/lib/bulk/ws";
 import { useMarketsStore } from "@/stores/markets.store";
 import { mapL2Book, mapTicker } from "@/domain/bulk/mappers";
 
+function extractTickersFromFrontendContext(ctx: any) {
+  // Heuristiques: on ne connaît pas 100% la shape, donc on supporte plusieurs formes.
+  // 1) ctx.tickers: Array<{symbol,...}>
+  if (ctx?.tickers && Array.isArray(ctx.tickers)) return ctx.tickers;
+
+  // 2) ctx is already an array
+  if (Array.isArray(ctx)) return ctx;
+
+  // 3) ctx.markets: Array
+  if (ctx?.markets && Array.isArray(ctx.markets)) return ctx.markets;
+
+  // 4) ctx.bySymbol: { [symbol]: {...} }
+  if (ctx?.bySymbol && typeof ctx.bySymbol === "object") {
+    return Object.entries(ctx.bySymbol).map(([symbol, data]) => ({
+      symbol,
+      ...(data as any),
+    }));
+  }
+
+  return [];
+}
+
 export function useBulkWs() {
   const selectedSymbol = useMarketsStore((s) => s.selectedSymbol);
   const markets = useMarketsStore((s) => s.markets);
-  const upsertTicker = useMarketsStore((s) => s.upsertTicker);
+
+  const upsertTickers = useMarketsStore((s) => s.upsertTickers);
   const setL2 = useMarketsStore((s) => s.setL2);
 
   const marketsRef = useRef(markets);
@@ -26,20 +49,37 @@ export function useBulkWs() {
   const ws = useMemo(() => {
     return new BulkWs({
       onOpen: () => {
-        // Re-subscribe on every (re)connect
-        const ms = marketsRef.current;
-        for (const m of ms) {
-          ws.subscribeTicker(m.symbol);
-        }
+        // 1) subscribe batch tickers
+        ws.subscribeFrontendContext();
+
+        // 2) l2 for selected
         const sel = selectedRef.current;
         if (sel) ws.subscribeL2Book(sel);
       },
       onMessage: (msg) => {
-        if (msg.type === "ticker" && msg.symbol) {
-          upsertTicker(mapTicker(msg.symbol, msg.data));
+        if (msg.type === "frontendContext") {
+          const rows = extractTickersFromFrontendContext(msg.data);
+
+          // Map -> Ticker domain
+          const tickers = rows
+            .map((row: any) => {
+              const symbol = row.symbol ?? row.s;
+              if (!symbol) return null;
+              return mapTicker(symbol, row);
+            })
+            .filter(Boolean) as any[];
+
+          if (tickers.length) upsertTickers(tickers);
+          return;
         }
+
         if (msg.type === "l2book" && msg.symbol) {
           setL2(mapL2Book(msg.symbol, msg.data));
+        }
+
+        // (tu peux garder "ticker" si Bulk l’envoie encore, mais normalement plus nécessaire)
+        if (msg.type === "ticker" && msg.symbol) {
+          upsertTickers([mapTicker(msg.symbol, msg.data)] as any);
         }
       },
     });
@@ -50,12 +90,6 @@ export function useBulkWs() {
     ws.connect();
     return () => ws.close();
   }, [ws]);
-
-  // Subscribe tickers for ALL markets (initial + when markets list changes)
-  useEffect(() => {
-    if (!markets.length) return;
-    for (const m of markets) ws.subscribeTicker(m.symbol);
-  }, [ws, markets]);
 
   // Subscribe L2 only for selected (when selection changes)
   useEffect(() => {
