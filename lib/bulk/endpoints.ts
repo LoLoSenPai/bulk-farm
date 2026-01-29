@@ -12,7 +12,6 @@ import {
 } from "@/domain/bulk/mappers";
 import type {
   Kline,
-  L2Book,
   Market,
   Ticker,
   Fill,
@@ -48,19 +47,6 @@ export async function getKlines(params: {
   const out = mapKlines(arr);
   return params.limit ? out.slice(-params.limit) : out;
 }
-
-// export async function getL2Book(params: {
-//   symbol: string;
-//   depth?: number;
-//   grouping?: number;
-// }): Promise<L2Book> {
-//   const usp = new URLSearchParams();
-//   usp.set("symbol", params.symbol);
-//   if (params.depth) usp.set("depth", String(params.depth));
-//   if (params.grouping) usp.set("grouping", String(params.grouping));
-//   const raw = await bulkFetch<any>(`/l2book?${usp.toString()}`);
-//   return mapL2Book(params.symbol, raw);
-// }
 
 export async function getL2Book(params: {
   symbol: string;

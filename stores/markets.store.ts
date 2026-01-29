@@ -81,9 +81,9 @@ export const useMarketsStore = create<MarketsState>((set) => ({
           high24h: t.high24h ?? prev?.high24h,
           low24h: t.low24h ?? prev?.low24h,
           change24h: t.change24h ?? prev?.change24h,
-          change24hPct: (t as any).change24hPct ?? (prev as any)?.change24hPct,
+          change24hPct: t.change24hPct ?? prev?.change24hPct,
           timestamp: t.timestamp ?? prev?.timestamp,
-        } as any;
+        };
       }
 
       return { tickerBySymbol: next };

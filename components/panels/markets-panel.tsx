@@ -51,8 +51,8 @@ export function MarketsPanel() {
                     {filtered.slice(0, 200).map((m) => {
                         const t = tickerBySymbol[m.symbol];
                         const isActive = m.symbol === selected;
-                        const px = t?.mark ?? t?.last;
-                        const last = t?.last;
+                        const px = t?.last ?? t?.mark;
+                        const pxLabel = t?.last !== undefined ? "last" : "mark";
 
                         return (
                             <button

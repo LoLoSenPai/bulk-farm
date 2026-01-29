@@ -20,7 +20,7 @@ export function useBulkBootstrap() {
   const wallet = useAccountStore((s) => s.wallet);
   const interval = useUiStore((s) => s.klineInterval);
 
-  // 1) boot: load markets + init tickers + pick first symbol
+  // 1) boot: load markets + pick first symbol
   useEffect(() => {
     let alive = true;
 
@@ -28,18 +28,20 @@ export function useBulkBootstrap() {
       const markets = await getExchangeInfo();
       if (!alive) return;
 
-      const { setMarkets, selectSymbol, upsertTicker } =
-        useMarketsStore.getState();
+      const priority = ["BTC-USD", "ETH-USD", "SOL-USD"];
+      markets.sort((a, b) => {
+        const ai = priority.indexOf(a.symbol);
+        const bi = priority.indexOf(b.symbol);
+        const ap = ai === -1 ? 999 : ai;
+        const bp = bi === -1 ? 999 : bi;
+        if (ap !== bp) return ap - bp;
+        return a.symbol.localeCompare(b.symbol);
+      });
 
+      const { setMarkets, selectSymbol } = useMarketsStore.getState();
       setMarkets(markets);
 
-      // init tickers once
-      for (const m of markets) {
-        getTicker(m.symbol)
-          .then((t) => alive && upsertTicker(t))
-          .catch((e) => console.warn("Ticker init failed:", m.symbol, e));
-      }
-
+      // pick default
       const first = markets[0]?.symbol;
       if (first) selectSymbol(first);
     })();
@@ -61,20 +63,20 @@ export function useBulkBootstrap() {
       const results = await Promise.allSettled([
         getTicker(selectedSymbol),
         getL2Book({ symbol: selectedSymbol, limit: 50 }),
-        getKlines({ symbol: selectedSymbol, interval, limit: 240 }),
+        // getKlines({ symbol: selectedSymbol, interval, limit: 240 }),
       ]);
 
       if (!alive) return;
 
-      const [t, book, k] = results;
+      const [t, book, /*k*/] = results;
 
       if (t.status === "fulfilled") upsertTicker(t.value);
 
       if (book.status === "fulfilled") setL2(book.value);
       else console.warn("L2Book failed:", book.reason);
 
-      if (k.status === "fulfilled") setKlines(selectedSymbol, k.value);
-      else console.warn("Klines failed:", k.reason);
+      // if (k.status === "fulfilled") setKlines(selectedSymbol, k.value);
+      // else console.warn("Klines failed:", k.reason);
     })();
 
     return () => {

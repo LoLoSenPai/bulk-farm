@@ -112,11 +112,30 @@ export class BulkWs {
     });
   }
 
+  unsubscribeTicker(symbol: string) {
+    this.send({
+      method: "unsubscribe",
+      subscription: [{ type: "ticker", symbol }],
+    });
+  }
+
   subscribeL2Delta(symbol: string) {
     this.send({
       method: "subscribe",
       subscription: [{ type: "l2Delta", symbol }],
     });
+  }
+
+  unsubscribeL2Delta(symbol: string) {
+    this.send({
+      method: "unsubscribe",
+      subscription: [{ type: "l2Delta", symbol }],
+    });
+  }
+
+  // optionnel (si un jour tu veux envoyer 1 seul message)
+  subscribeMany(subs: Array<Record<string, any>>) {
+    this.send({ method: "subscribe", subscription: subs });
   }
 
   unsubscribeAll() {
@@ -150,76 +169,48 @@ function parseWs(data: any): BulkWsMessage {
       return { type: "subscriptionResponse", topics: obj.topics ?? [] };
     }
 
-    if (obj?.type === "frontendContext") {
-      return { type: "frontendContext", data: obj.data ?? obj };
+    if (obj?.type === "error") {
+      return {
+        type: "error",
+        message: obj.message ?? "WS error",
+        code: obj.code,
+      };
     }
 
-    if (obj?.type === "ticker") {
+    if (
+      obj?.type === "frontendContext" ||
+      obj?.topic === "frontendContext" ||
+      obj?.channel === "frontendContext" ||
+      (obj?.ctx && Array.isArray(obj.ctx))
+    ) {
+      const payload = obj?.data?.ctx
+        ? obj.data
+        : obj?.ctx
+          ? obj
+          : obj?.data
+            ? obj.data
+            : obj;
+
+      return { type: "frontendContext", data: payload };
+    }
+
+    if (obj?.type === "ticker" || obj?.channel === "ticker") {
       const t = obj.data?.ticker ?? obj.ticker ?? obj.data ?? obj;
-      const symbol = t.symbol ?? t.s;
+      const symbol = t?.symbol ?? t?.s ?? obj.symbol ?? obj.s;
       return { type: "ticker", symbol, data: t };
     }
 
-    if (obj?.type === "l2Delta") {
+    if (obj?.type === "l2Delta" || obj?.channel === "l2Delta") {
       const d = obj.data ?? obj;
-      const symbol = d.symbol ?? d.s;
-      return { type: "l2book", symbol, data: d }; // on réutilise ton type "l2book"
+      const symbol = d?.symbol ?? d?.s ?? obj.symbol ?? obj.s;
+      return { type: "l2book", symbol, data: d };
     }
 
-    // ✅ frontendContext (selon les formats possibles)
-    // cas A: { type: "frontendContext", ctx: [...] }
-    if (obj?.type === "frontendContext") {
-      return { type: "frontendContext", data: obj };
+    if (obj?.type === "l2book" || obj?.channel === "l2book") {
+      const d = obj.data ?? obj;
+      const symbol = d?.symbol ?? d?.s ?? obj.symbol ?? obj.s;
+      return { type: "l2book", symbol, data: d };
     }
-
-    // cas B: { topic: "frontendContext", data: {...} } ou { channel: "frontendContext", ... }
-    if (
-      obj?.topic === "frontendContext" ||
-      obj?.channel === "frontendContext"
-    ) {
-      return { type: "frontendContext", data: obj.data ?? obj };
-    }
-
-    // cas C: tu logs déjà msg.data = { ctx: [...] } => on accepte un payload direct
-    if (obj?.ctx && Array.isArray(obj.ctx)) {
-      return { type: "frontendContext", data: obj };
-    }
-
-    // --- le reste de ton parseWs existant ---
-    if (obj?.type && typeof obj.type === "string") {
-      if (obj.type === "ticker")
-        return {
-          type: "ticker",
-          symbol: obj.symbol ?? obj.s,
-          data: obj.data ?? obj,
-        };
-      if (obj.type === "l2book")
-        return {
-          type: "l2book",
-          symbol: obj.symbol ?? obj.s,
-          data: obj.data ?? obj,
-        };
-      if (obj.type === "error")
-        return {
-          type: "error",
-          message: obj.message ?? "WS error",
-          code: obj.code,
-        };
-      return { type: "raw", data: obj };
-    }
-
-    if (obj?.channel === "ticker")
-      return {
-        type: "ticker",
-        symbol: obj.symbol ?? obj.s,
-        data: obj.data ?? obj,
-      };
-    if (obj?.channel === "l2book")
-      return {
-        type: "l2book",
-        symbol: obj.symbol ?? obj.s,
-        data: obj.data ?? obj,
-      };
 
     return { type: "raw", data: obj };
   } catch {

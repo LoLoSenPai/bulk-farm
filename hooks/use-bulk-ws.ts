@@ -7,19 +7,13 @@ import { useMarketsStore } from "@/stores/markets.store";
 import { mapL2Book, mapTicker } from "@/domain/bulk/mappers";
 
 export function useBulkWs() {
-  const markets = useMarketsStore((s) => s.markets);
   const selectedSymbol = useMarketsStore((s) => s.selectedSymbol);
-
-  const upsertTicker = useMarketsStore((s) => s.upsertTicker);
   const upsertTickers = useMarketsStore((s) => s.upsertTickers);
+  const upsertTicker = useMarketsStore((s) => s.upsertTicker);
   const setL2 = useMarketsStore((s) => s.setL2);
 
-  const marketsRef = useRef(markets);
-  const selectedRef = useRef(selectedSymbol);
-
-  useEffect(() => {
-    marketsRef.current = markets;
-  }, [markets]);
+  const selectedRef = useRef<string | undefined>(selectedSymbol);
+  const prevSelectedRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     selectedRef.current = selectedSymbol;
@@ -28,17 +22,13 @@ export function useBulkWs() {
   const ws = useMemo(() => {
     const client = new BulkWs({
       onOpen: () => {
-        // 1) global dashboard stream
         client.subscribeFrontendContext();
 
-        // 2) subscribe tickers for ALL markets (so left list updates w/o clicking)
-        for (const m of marketsRef.current) {
-          client.subscribeTicker(m.symbol);
-        }
-
-        // 3) L2 only for selected
         const sel = selectedRef.current;
-        if (sel) client.subscribeL2Delta(sel);
+        if (sel) {
+          client.subscribeTicker(sel); // ✅ mark live sur selected
+          client.subscribeL2Delta(sel); // ✅ book live sur selected
+        }
       },
 
       onMessage: (msg) => {
@@ -55,13 +45,13 @@ export function useBulkWs() {
         }
 
         if (msg.type === "ticker" && msg.symbol) {
+          // ticker stream (200ms) => contient markPrice, high/low/volume, etc.
           upsertTicker(mapTicker(msg.symbol, msg.data));
           return;
         }
 
         if (msg.type === "l2book" && msg.symbol) {
           setL2(mapL2Book(msg.symbol, msg.data));
-          return;
         }
       },
     });
@@ -75,16 +65,21 @@ export function useBulkWs() {
     return () => ws.close();
   }, [ws]);
 
-  // IMPORTANT: markets are often loaded AFTER WS is already open
-  // so we subscribe once markets arrive too.
+  // (un)subscribe selected streams proprement
   useEffect(() => {
-    if (!markets.length) return;
-    for (const m of markets) ws.subscribeTicker(m.symbol);
-  }, [ws, markets]);
+    const prev = prevSelectedRef.current;
+    const next = selectedSymbol;
 
-  // selected L2 updates
-  useEffect(() => {
-    if (!selectedSymbol) return;
-    ws.subscribeL2Delta(selectedSymbol);
+    if (prev && prev !== next) {
+      ws.unsubscribeTicker(prev);
+      ws.unsubscribeL2Delta(prev);
+    }
+
+    if (next) {
+      ws.subscribeTicker(next);
+      ws.subscribeL2Delta(next);
+    }
+
+    prevSelectedRef.current = next;
   }, [ws, selectedSymbol]);
 }

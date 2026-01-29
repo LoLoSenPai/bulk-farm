@@ -28,7 +28,7 @@ export type Ticker = {
 };
 
 export type Kline = {
-  t: number; // open time (ms)
+  t: number;
   o: number;
   h: number;
   l: number;
