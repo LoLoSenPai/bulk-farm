@@ -51,8 +51,8 @@ export function MarketsPanel() {
                     {filtered.slice(0, 200).map((m) => {
                         const t = tickerBySymbol[m.symbol];
                         const isActive = m.symbol === selected;
-                        const px = t?.last ?? t?.mark;
-                        const pxLabel = t?.last !== undefined ? "last" : "mark";
+                        const px = t?.mark ?? t?.last;
+                        const last = t?.last;
 
                         return (
                             <button
@@ -75,8 +75,13 @@ export function MarketsPanel() {
                                                 {fmtPx(px, m.symbol)}
                                             </div>
 
-
+                                            {/* {last !== undefined ? (
+                                                <div className="text-[11px] text-white/50 tabular-nums">
+                                                    last {fmtPx(last, m.symbol)}
+                                                </div>
+                                            ) : null} */}
                                         </div>
+
                                         {t?.change24hPct !== undefined ? (
                                             <div
                                                 className={[
@@ -87,7 +92,6 @@ export function MarketsPanel() {
                                                 {(t.change24hPct * 100).toFixed(2)}%
                                             </div>
                                         ) : null}
-
                                     </div>
                                     <div className="hidden w-[80px] text-right md:block">
                                         <div className="font-semibold">{fmtPct(t?.fundingRate)}</div>

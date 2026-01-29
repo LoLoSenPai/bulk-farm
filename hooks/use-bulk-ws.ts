@@ -1,3 +1,4 @@
+// hooks/use-bulk-ws.ts
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
@@ -7,36 +8,41 @@ import { mapL2Book, mapTicker } from "@/domain/bulk/mappers";
 
 export function useBulkWs() {
   const selectedSymbol = useMarketsStore((s) => s.selectedSymbol);
+  const upsertTicker = useMarketsStore((s) => s.upsertTicker);
   const upsertTickers = useMarketsStore((s) => s.upsertTickers);
   const setL2 = useMarketsStore((s) => s.setL2);
 
   const selectedRef = useRef(selectedSymbol);
-
   useEffect(() => {
     selectedRef.current = selectedSymbol;
   }, [selectedSymbol]);
 
   const ws = useMemo(() => {
-    return new BulkWs({
+    const client = new BulkWs({
       onOpen: () => {
-        // One subscription feeds all tickers
-        ws.subscribeFrontendContext();
+        client.subscribeFrontendContext();
 
-        // L2 only for selected
         const sel = selectedRef.current;
-        if (sel) ws.subscribeL2Book(sel);
+        if (sel) {
+          client.subscribeTicker(sel); // ✅ prix “live”
+          client.subscribeL2Delta(sel); // ✅ orderbook live (si dispo)
+        }
       },
       onMessage: (msg) => {
         if (msg.type === "frontendContext") {
           const rows = msg.data?.ctx ?? msg.data?.data?.ctx ?? [];
           const tickers = rows
-            .map((row: any) => {
-              if (!row?.symbol) return null;
-              return mapTicker(row.symbol, row);
-            })
+            .map((row: any) =>
+              row?.symbol ? mapTicker(row.symbol, row) : null,
+            )
             .filter(Boolean) as any[];
 
           if (tickers.length) upsertTickers(tickers);
+          return;
+        }
+
+        if (msg.type === "ticker" && msg.symbol) {
+          upsertTicker(mapTicker(msg.symbol, msg.data));
           return;
         }
 
@@ -45,6 +51,8 @@ export function useBulkWs() {
         }
       },
     });
+
+    return client;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -55,6 +63,7 @@ export function useBulkWs() {
 
   useEffect(() => {
     if (!selectedSymbol) return;
-    ws.subscribeL2Book(selectedSymbol);
+    ws.subscribeTicker(selectedSymbol);
+    ws.subscribeL2Delta(selectedSymbol);
   }, [ws, selectedSymbol]);
 }

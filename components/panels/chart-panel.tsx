@@ -37,7 +37,7 @@ export function ChartPanel() {
                             </>
                         }
                     >
-                        <Pill>Price: {fmt(ticker?.last ?? ticker?.mark)}</Pill>
+                        <Pill>Last: {fmt(ticker?.last ?? ticker?.mark)}</Pill>
                         {ticker?.mark !== undefined ? <Pill>Mark: {fmt(ticker.mark)}</Pill> : null}
                     </Tooltip>
 

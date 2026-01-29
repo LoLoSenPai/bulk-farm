@@ -106,12 +106,17 @@ export class BulkWs {
   }
 
   subscribeTicker(symbol: string) {
-    // NOTE: exact channel format may differ; adjust once we inspect WS docs
-    this.send({ op: "subscribe", channel: "ticker", symbol });
+    this.send({
+      method: "subscribe",
+      subscription: [{ type: "ticker", symbol }],
+    });
   }
 
-  subscribeL2Book(symbol: string) {
-    this.send({ op: "subscribe", channel: "l2book", symbol });
+  subscribeL2Delta(symbol: string) {
+    this.send({
+      method: "subscribe",
+      subscription: [{ type: "l2Delta", symbol }],
+    });
   }
 
   unsubscribeAll() {
@@ -140,6 +145,26 @@ export class BulkWs {
 function parseWs(data: any): BulkWsMessage {
   try {
     const obj = typeof data === "string" ? JSON.parse(data) : data;
+
+    if (obj?.type === "subscriptionResponse") {
+      return { type: "subscriptionResponse", topics: obj.topics ?? [] };
+    }
+
+    if (obj?.type === "frontendContext") {
+      return { type: "frontendContext", data: obj.data ?? obj };
+    }
+
+    if (obj?.type === "ticker") {
+      const t = obj.data?.ticker ?? obj.ticker ?? obj.data ?? obj;
+      const symbol = t.symbol ?? t.s;
+      return { type: "ticker", symbol, data: t };
+    }
+
+    if (obj?.type === "l2Delta") {
+      const d = obj.data ?? obj;
+      const symbol = d.symbol ?? d.s;
+      return { type: "l2book", symbol, data: d }; // on réutilise ton type "l2book"
+    }
 
     // ✅ frontendContext (selon les formats possibles)
     // cas A: { type: "frontendContext", ctx: [...] }
