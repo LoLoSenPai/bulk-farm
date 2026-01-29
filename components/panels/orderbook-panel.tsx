@@ -8,7 +8,9 @@ import { useMarketsStore } from "@/stores/markets.store";
 
 export function OrderbookPanel() {
     const symbol = useMarketsStore((s) => s.selectedSymbol);
-    const book = useMarketsStore((s) => (symbol ? s.l2BySymbol[symbol] : undefined));
+    const book = useMarketsStore((s) =>
+        symbol ? s.l2BySymbol[symbol] : undefined
+    );
 
     return (
         <Card title="Orderbook" className="min-h-0">

@@ -2,6 +2,7 @@
 // lib/bulk/ws-types.ts
 // =========================
 export type BulkWsMessage =
+  | { type: "subscribed"; channel: string; symbol?: string }
   | { type: "subscriptionResponse"; topics: string[] }
   | { type: "frontendContext"; data: { ctx: any[] } }
   | { type: "ticker"; symbol: string; data: any }

@@ -65,7 +65,27 @@ export const useMarketsStore = create<MarketsState>((set) => ({
   upsertTickers: (tickers) =>
     set((st) => {
       const next = { ...st.tickerBySymbol };
-      for (const t of tickers) next[t.symbol] = t;
+
+      for (const t of tickers) {
+        const prev = next[t.symbol];
+
+        next[t.symbol] = {
+          ...prev,
+          ...t,
+          last: t.last ?? prev?.last,
+          mark: t.mark ?? prev?.mark,
+          oracle: t.oracle ?? prev?.oracle,
+          fundingRate: t.fundingRate ?? prev?.fundingRate,
+          openInterest: t.openInterest ?? prev?.openInterest,
+          volume24h: t.volume24h ?? prev?.volume24h,
+          high24h: t.high24h ?? prev?.high24h,
+          low24h: t.low24h ?? prev?.low24h,
+          change24h: t.change24h ?? prev?.change24h,
+          change24hPct: (t as any).change24hPct ?? (prev as any)?.change24hPct,
+          timestamp: t.timestamp ?? prev?.timestamp,
+        } as any;
+      }
+
       return { tickerBySymbol: next };
     }),
 

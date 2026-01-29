@@ -18,9 +18,9 @@ import { useBulkKlinesPoll } from "@/hooks/use-bulk-klines-poll";
 export default function Page() {
   useBulkBootstrap();
   useBulkWs();
-  useBulkTickerPoll();
+  useBulkTickerPoll(60_000);
   useBulkKlinesPoll();
-  
+
   return (
     <div className="min-h-dvh">
       <Topbar />

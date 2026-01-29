@@ -51,6 +51,8 @@ export function MarketsPanel() {
                     {filtered.slice(0, 200).map((m) => {
                         const t = tickerBySymbol[m.symbol];
                         const isActive = m.symbol === selected;
+                        const px = t?.last ?? t?.mark;
+                        const pxLabel = t?.last !== undefined ? "last" : "mark";
 
                         return (
                             <button
@@ -70,7 +72,7 @@ export function MarketsPanel() {
                                     <div className="text-left">
                                         <div className="flex items-baseline justify-start gap-2">
                                             <div className="font-semibold tabular-nums">
-                                                {fmtPx(t?.mark ?? t?.last, m.symbol)}
+                                                {fmtPx(px, m.symbol)}
                                             </div>
 
 

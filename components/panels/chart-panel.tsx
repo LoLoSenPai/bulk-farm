@@ -11,8 +11,12 @@ import { useUiStore } from "@/stores/ui.store";
 
 export function ChartPanel() {
     const symbol = useMarketsStore((s) => s.selectedSymbol);
-    const ticker = useMarketsStore((s) => (symbol ? s.tickerBySymbol[symbol] : undefined));
-    const klines = useMarketsStore((s) => (symbol ? s.klinesBySymbol[symbol] : undefined));
+    const ticker = useMarketsStore((s) =>
+        symbol ? s.tickerBySymbol[symbol] : undefined
+    );
+    const klines = useMarketsStore((s) =>
+        symbol ? s.klinesBySymbol[symbol] : undefined
+    );
 
     const interval = useUiStore((s) => s.klineInterval);
     const setInterval = useUiStore((s) => s.setKlineInterval);
@@ -33,7 +37,8 @@ export function ChartPanel() {
                             </>
                         }
                     >
-                        <Pill>Mark: {fmt(ticker?.mark ?? ticker?.last)}</Pill>
+                        <Pill>Price: {fmt(ticker?.last ?? ticker?.mark)}</Pill>
+                        {ticker?.mark !== undefined ? <Pill>Mark: {fmt(ticker.mark)}</Pill> : null}
                     </Tooltip>
 
                     <Tooltip

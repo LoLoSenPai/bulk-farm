@@ -50,7 +50,7 @@ export function mapTicker(symbol: string, raw: any) {
     last: num(raw.lastPrice ?? raw.last ?? raw.px ?? raw.c),
     mark: num(raw.markPrice ?? raw.mark ?? raw.markPx ?? raw.mp),
     oracle: num(raw.oraclePrice ?? raw.oracle ?? raw.oraclePx ?? raw.op),
-    fundingRate: num(raw.fundingRate ?? raw.fr),
+    fundingRate: num(raw.fundingRate ?? raw.funding ?? raw.fr),
     openInterest: num(raw.openInterest ?? raw.oi),
     volume24h: num(raw.quoteVolume ?? raw.volume24h ?? raw.v24h ?? raw.v),
     high24h: num(raw.highPrice ?? raw.high24h ?? raw.h24h ?? raw.h),

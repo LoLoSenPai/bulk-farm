@@ -141,40 +141,60 @@ function parseWs(data: any): BulkWsMessage {
   try {
     const obj = typeof data === "string" ? JSON.parse(data) : data;
 
-    if (obj?.type === "subscriptionResponse") {
-      return { type: "subscriptionResponse", topics: obj.topics ?? [] };
-    }
-
+    // ✅ frontendContext (selon les formats possibles)
+    // cas A: { type: "frontendContext", ctx: [...] }
     if (obj?.type === "frontendContext") {
-      if (Array.isArray(obj.ctx))
-        return { type: "frontendContext", data: { ctx: obj.ctx } };
-      if (obj?.data?.ctx) return { type: "frontendContext", data: obj.data };
-      return { type: "frontendContext", data: { ctx: [] } };
+      return { type: "frontendContext", data: obj };
     }
 
-    if (obj?.type === "ticker") {
+    // cas B: { topic: "frontendContext", data: {...} } ou { channel: "frontendContext", ... }
+    if (
+      obj?.topic === "frontendContext" ||
+      obj?.channel === "frontendContext"
+    ) {
+      return { type: "frontendContext", data: obj.data ?? obj };
+    }
+
+    // cas C: tu logs déjà msg.data = { ctx: [...] } => on accepte un payload direct
+    if (obj?.ctx && Array.isArray(obj.ctx)) {
+      return { type: "frontendContext", data: obj };
+    }
+
+    // --- le reste de ton parseWs existant ---
+    if (obj?.type && typeof obj.type === "string") {
+      if (obj.type === "ticker")
+        return {
+          type: "ticker",
+          symbol: obj.symbol ?? obj.s,
+          data: obj.data ?? obj,
+        };
+      if (obj.type === "l2book")
+        return {
+          type: "l2book",
+          symbol: obj.symbol ?? obj.s,
+          data: obj.data ?? obj,
+        };
+      if (obj.type === "error")
+        return {
+          type: "error",
+          message: obj.message ?? "WS error",
+          code: obj.code,
+        };
+      return { type: "raw", data: obj };
+    }
+
+    if (obj?.channel === "ticker")
       return {
         type: "ticker",
         symbol: obj.symbol ?? obj.s,
         data: obj.data ?? obj,
       };
-    }
-
-    if (obj?.type === "l2book") {
+    if (obj?.channel === "l2book")
       return {
         type: "l2book",
         symbol: obj.symbol ?? obj.s,
         data: obj.data ?? obj,
       };
-    }
-
-    if (obj?.type === "error") {
-      return {
-        type: "error",
-        message: obj.message ?? "WS error",
-        code: obj.code,
-      };
-    }
 
     return { type: "raw", data: obj };
   } catch {

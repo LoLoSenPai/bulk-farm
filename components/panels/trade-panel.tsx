@@ -17,7 +17,9 @@ type ToggleProps<T extends string> = {
 
 export function TradePanel() {
     const symbol = useMarketsStore((s) => s.selectedSymbol);
-    const ticker = useMarketsStore((s) => (symbol ? s.tickerBySymbol[symbol] : undefined));
+    const ticker = useMarketsStore((s) =>
+        symbol ? s.tickerBySymbol[symbol] : undefined
+    );
 
     const [side, setSide] = useState<"long" | "short">("long");
     const [type, setType] = useState<"market" | "limit">("market");
