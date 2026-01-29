@@ -28,7 +28,7 @@ export function useBulkWs() {
       },
       onMessage: (msg) => {
         if (msg.type === "frontendContext") {
-          const rows = msg.data?.ctx ?? [];
+          const rows = msg.data?.ctx ?? msg.data?.data?.ctx ?? [];
           const tickers = rows
             .map((row: any) => {
               if (!row?.symbol) return null;
