@@ -67,9 +67,25 @@ export function MarketsPanel() {
                                 </div>
 
                                 <div className="flex items-end gap-2">
-                                    <div className="text-right">
-                                        <div className="font-semibold">{fmt(t?.mark ?? t?.last)}</div>
-                                        <div className="text-[11px] text-white/50">mark</div>
+                                    <div className="text-left">
+                                        <div className="flex items-baseline justify-start gap-2">
+                                            <div className="font-semibold tabular-nums">
+                                                {fmtPx(t?.mark ?? t?.last, m.symbol)}
+                                            </div>
+
+
+                                        </div>
+                                        {t?.change24hPct !== undefined ? (
+                                            <div
+                                                className={[
+                                                    "w-[64px] text-left text-[11px] font-semibold tabular-nums",
+                                                    t.change24hPct >= 0 ? "text-emerald-300" : "text-rose-300",
+                                                ].join(" ")}
+                                            >
+                                                {(t.change24hPct * 100).toFixed(2)}%
+                                            </div>
+                                        ) : null}
+
                                     </div>
                                     <div className="hidden w-[80px] text-right md:block">
                                         <div className="font-semibold">{fmtPct(t?.fundingRate)}</div>
@@ -85,10 +101,25 @@ export function MarketsPanel() {
     );
 }
 
-function fmt(v: number | undefined, maxFrac = 2) {
-    if (v === undefined) return "—";
-    return v.toLocaleString(undefined, { maximumFractionDigits: maxFrac });
+function decimalsForSymbol(symbol?: string) {
+    const base = symbol?.split("-")[0];
+    if (base === "BTC") return 2;
+    if (base === "ETH") return 2;
+    if (base === "SOL") return 2;
+    return 2;
 }
+
+function fmtPx(v: number | undefined, symbol?: string) {
+    if (v === undefined) return "—";
+    const d = decimalsForSymbol(symbol);
+    // pas de séparateur de milliers + décimales fixes
+    return v.toLocaleString("en-US", {
+        useGrouping: false,
+        minimumFractionDigits: d,
+        maximumFractionDigits: d,
+    });
+}
+
 
 function fmtPct(v: number | undefined, decimals = 4) {
     if (v === undefined) return "—";

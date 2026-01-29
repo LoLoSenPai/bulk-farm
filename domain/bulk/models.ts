@@ -24,6 +24,7 @@ export type Ticker = {
   low24h?: number;
   change24h?: number;
   timestamp?: number;
+  change24hPct?: number;
 };
 
 export type Kline = {

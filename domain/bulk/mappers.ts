@@ -44,14 +44,32 @@ export function mapTicker(symbol: string, raw: any) {
   return {
     symbol,
     last: num(raw.lastPrice ?? raw.last ?? raw.px ?? raw.c),
+    // frontendContext n'a pas mark/oracle -> on laisse undefined (UI fait déjà mark ?? last)
     mark: num(raw.markPrice ?? raw.mark ?? raw.markPx ?? raw.mp),
     oracle: num(raw.oraclePrice ?? raw.oracle ?? raw.oraclePx ?? raw.op),
-    fundingRate: num(raw.fundingRate ?? raw.fr),
+
+    // ✅ frontendContext: funding (pas fundingRate)
+    fundingRate: num(raw.fundingRate ?? raw.fr ?? raw.funding),
+
+    // ✅ frontendContext: oi (ok) + openInterest (REST)
     openInterest: num(raw.openInterest ?? raw.oi),
-    volume24h: num(raw.quoteVolume ?? raw.volume24h ?? raw.v24h ?? raw.v), // préférence quoteVolume
+
+    // ✅ frontendContext: volume (base) ; REST: quoteVolume (USDC)
+    // On garde la préférence quoteVolume si dispo, sinon volume.
+    volume24h: num(
+      raw.quoteVolume ?? raw.volume ?? raw.volume24h ?? raw.v24h ?? raw.v,
+    ),
+
+    // frontendContext n'a pas high/low -> undefined, c'est ok (REST les remplit)
     high24h: num(raw.highPrice ?? raw.high24h ?? raw.h24h ?? raw.h),
     low24h: num(raw.lowPrice ?? raw.low24h ?? raw.l24h ?? raw.l),
+
+    // ✅ frontendContext fournit priceChange et priceChangePercent
     change24h: num(raw.priceChange ?? raw.change24h ?? raw.ch24h),
+
+    // (optionnel mais utile pour la UI)
+    change24hPct: num(raw.priceChangePercent ?? raw.change24hPct ?? raw.pct),
+
     timestamp: ms(raw.timestamp ?? raw.ts ?? raw.time ?? raw.t),
   };
 }
