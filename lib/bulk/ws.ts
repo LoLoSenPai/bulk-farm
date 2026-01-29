@@ -52,7 +52,7 @@ export class BulkWs {
       }
 
       this.handlers.onOpen?.();
-      this.startHeartbeat();
+      // this.startHeartbeat();
     };
 
     this.ws.onclose = () => {
@@ -120,7 +120,7 @@ export class BulkWs {
   }
 
   unsubscribeAll() {
-    this.send({ op: "unsubscribe", channel: "*" });
+    this.unsubscribeFrontendContext();
   }
 
   private startHeartbeat() {
