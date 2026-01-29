@@ -41,34 +41,26 @@ export function mapMarket(raw: any): Market {
 }
 
 export function mapTicker(symbol: string, raw: any) {
+  const priceChangePercent = num(
+    raw.priceChangePercent ?? raw.change24hPct ?? raw.changePct ?? raw.pct,
+  );
+
   return {
     symbol,
     last: num(raw.lastPrice ?? raw.last ?? raw.px ?? raw.c),
-    // frontendContext n'a pas mark/oracle -> on laisse undefined (UI fait déjà mark ?? last)
     mark: num(raw.markPrice ?? raw.mark ?? raw.markPx ?? raw.mp),
     oracle: num(raw.oraclePrice ?? raw.oracle ?? raw.oraclePx ?? raw.op),
-
-    // ✅ frontendContext: funding (pas fundingRate)
-    fundingRate: num(raw.fundingRate ?? raw.fr ?? raw.funding),
-
-    // ✅ frontendContext: oi (ok) + openInterest (REST)
+    fundingRate: num(raw.fundingRate ?? raw.fr),
     openInterest: num(raw.openInterest ?? raw.oi),
-
-    // ✅ frontendContext: volume (base) ; REST: quoteVolume (USDC)
-    // On garde la préférence quoteVolume si dispo, sinon volume.
-    volume24h: num(
-      raw.quoteVolume ?? raw.volume ?? raw.volume24h ?? raw.v24h ?? raw.v,
-    ),
-
-    // frontendContext n'a pas high/low -> undefined, c'est ok (REST les remplit)
+    volume24h: num(raw.quoteVolume ?? raw.volume24h ?? raw.v24h ?? raw.v),
     high24h: num(raw.highPrice ?? raw.high24h ?? raw.h24h ?? raw.h),
     low24h: num(raw.lowPrice ?? raw.low24h ?? raw.l24h ?? raw.l),
-
-    // ✅ frontendContext fournit priceChange et priceChangePercent
     change24h: num(raw.priceChange ?? raw.change24h ?? raw.ch24h),
 
-    // (optionnel mais utile pour la UI)
-    change24hPct: num(raw.priceChangePercent ?? raw.change24hPct ?? raw.pct),
+    // ✅ NORMALISATION : Bulk donne un "percent", on le convertit en fraction.
+    // ex: -0.1409 (= -0.1409%) => -0.001409 (fraction)
+    change24hPct:
+      priceChangePercent === undefined ? undefined : priceChangePercent / 100,
 
     timestamp: ms(raw.timestamp ?? raw.ts ?? raw.time ?? raw.t),
   };
